@@ -354,3 +354,61 @@ Create the first concrete artifacts:
 1. `themes/` folder with 3 demo markdown files,
 2. parser contract (`ThemeDefinition` model), and
 3. WinForms wireframe flow mapped to existing NHSE screens.
+
+---
+
+## Repo Reality Check (2026-03 update)
+New findings after reviewing current codebase and existing UX:
+
+### What already exists that we can leverage immediately
+- **Bulk item placement already exists** via `BulkSpawn` in the map editor. It supports arrangement modes, item count, coordinate start, and no-overwrite behavior. This is a strong base for MVP instead of building dumping from zero.
+- **Low-level placement APIs are already mature** in `LayerItem` (`IsOccupied`, `DeleteExtensionTiles`, `SetExtensionTiles`) and `FieldItemDropper` (2x2 dropped-item column injection + fit checks). The future planner should wrap these, not replace them.
+- **Item resolution by name/ID is already solved** in `ItemParser` (including language-aware parsing and user-input formats). Theme files can rely on existing parser/validation paths.
+- **Map editor integration point is obvious**: `FieldItemEditor` already launches `BulkSpawn` from a menu action. A themed dump wizard can be introduced as a sibling entry in this same workflow.
+
+### Gaps between current implementation and planned themed workflow
+- There is **no current Theme domain model** (`ThemeDefinition`, repository, parser, validation pipeline) in `NHSE.Core/Editing`.
+- There is **no dedicated planning abstraction** yet (no `DumpPlanGenerator` / `DumpPlanExecutor` split).
+- Existing backup behavior is **auto-backup on load**, but not explicit per-operation rotating backup with retention policy. We need a dedicated operation-level backup service for dump execution.
+- Existing tests cover parsing/utilities broadly, but there are **no tests for dump planning invariants** (capacity, overwrite policy, lane reservation, deterministic traversal).
+
+### MVP-first implementation ideas (to stay prototype-ready in a few iterations)
+1. **Phase 1.5 (Bridge MVP)**
+   - Add a `Theme Spawn` mode inside/alongside `BulkSpawn` first, before full wizard UI.
+   - Keep controls minimal: Theme file picker, start X/Y, arrangement, overwrite toggle, dry-run text summary.
+   - This gives fast user testing without waiting for full multi-step UX.
+
+2. **Core contracts with minimum viable surface**
+   - Introduce first-pass interfaces with only required methods:
+     - `IThemeRepository.LoadAll()/Load(path)`
+     - `IDumpPlanner.Plan(theme, area, options)`
+     - `IDumpExecutor.Apply(plan, layer)`
+     - `IBackupService.CreateSnapshot(context)`
+   - Avoid early over-generalization; add methods only after first two real themes are exercised.
+
+3. **Theme data format adjustment for MVP reliability**
+   - Keep Markdown as authoring format, but require an explicit machine-readable item token per line (`item_id` or exact item name), with strict lint mode in CI.
+   - Add optional `stack: max|1|n` at item-entry level now so stack behavior is data-driven, not only global.
+
+4. **Deterministic planning defaults (important for reproducible bug reports)**
+   - Lock first traversal to `row-major` only for MVP.
+   - Lock lane behavior to one optional preset (`none` or `every 3`) until we validate pickup ergonomics.
+   - Emit a simple run report JSON (`placed/skipped/overwritten`, bounds, seed/traversal) per execution.
+
+5. **Prototype acceptance criteria (tight definition of “working MVP for testing”)**
+   - Load one demo theme from disk.
+   - Preview estimated required tiles vs available tiles.
+   - Execute to selected rectangle with overwrite choice.
+   - Auto-create operation backup and show restore path.
+   - Produce run report and user-facing warnings for skipped/invalid entries.
+
+### Proposed near-term milestone tweak
+- **M1a (new):** Theme model + parser + validator + 3 demo themes + lint command.
+- **M1b (new):** Headless planner/executor with tests (no WinForms dependency).
+- **M2 (adjusted):** Thin WinForms integration (Theme Spawn dialog) reusing existing map editor entry points.
+- **M3+:** Full guided wizard, thumbnails, advanced lane/category layouts.
+
+### Implementation sequencing recommendation
+- Start in `NHSE.Core` first (theme parsing/planning/execution contracts + tests), then do WinForms wiring.
+- Keep UI code as orchestration only; all mutation/planning logic should be unit-testable without forms.
+- Reuse existing `ItemParser` and `LayerItem` behaviors as the single source of truth for item validity and placement collision handling.

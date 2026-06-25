@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+
+# Generated local output. Commit only intentionally reviewed sample fixtures.
+acre_output/*
+!acre_output/.gitkeep
+
+# Never commit personal save exports or NHSE dump artifacts here.
+*.dat
+*.nhi
+*.nhl
+*.xlsx
+*.xlsb
+*save*/

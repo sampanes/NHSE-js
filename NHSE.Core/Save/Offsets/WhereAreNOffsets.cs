@@ -25,6 +25,8 @@ public abstract class WhereAreNOffsets
             30 => new WhereAreNOffsets20(),
             31 => new WhereAreNOffsets20(),
             32 => new WhereAreNOffsets20(),
+            33 => new WhereAreNOffsets20(),
+            34 => new WhereAreNOffsets20(),
             _ => throw new IndexOutOfRangeException("Unknown revision!" + Environment.NewLine + Info),
         };
     }

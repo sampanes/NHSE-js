@@ -111,6 +111,8 @@ public abstract class MainSaveOffsets
             30 => new MainSaveOffsets20(),
             31 => new MainSaveOffsets30(),
             32 => new MainSaveOffsets30(),
+            33 => new MainSaveOffsets30(),
+            34 => new MainSaveOffsets30(),
             _ => throw new IndexOutOfRangeException("Unknown revision!" + Environment.NewLine + Info),
         };
     }
